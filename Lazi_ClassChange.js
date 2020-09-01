@@ -194,6 +194,11 @@
  * @value remove
  * @default enable
  * 
+ * 
+ * @command ShowClassChangeScene
+ * @text Show Class Change Scene
+ * @desc Command used to display the class change scene without using the status menu.
+ * 
  */
 
 //------------------------------//
@@ -205,8 +210,8 @@ Imported.Lazi_ClassChange = true;
 var Lazi = Lazi || {};
 Lazi.ClassChange = Lazi.ClassChange || {};
 Lazi.Utils = Lazi.Utils || {};
-Lazi.ClassChange.version = 1.0;
-Lazi.Utils.Debug = false;
+Lazi.ClassChange.version = "1.0.1";
+Lazi.Utils.Debug = true;
 
 //------------------------------//
 //      Helper Objects          //
@@ -242,6 +247,8 @@ Lazi.ClassChange.initialize = function () {
 Lazi.ClassChange.initializePluginCommands = function () {
     Lazi.Utils.DebugLog("Lazi_ClassChange: Initializing Plugin Commands");
     PluginManager.registerCommand("Lazi_ClassChange", "ModifyClasses", this.addActorClass);
+    PluginManager.registerCommand("Lazi_ClassChange", "ModifyMenuAccess", this.addActorClass);
+
 }
 
 Lazi.ClassChange.initializeParameters = function () {
