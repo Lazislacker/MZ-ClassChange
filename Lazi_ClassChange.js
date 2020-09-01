@@ -217,10 +217,18 @@ Lazi.Utils.Debug = true;
 //      Helper Objects          //
 //------------------------------//
 class Lazi_ClassChange_ClassObject {
-    constructor(classID, classExp = 0, enabled = true) {
+    constructor(classID, classExp = 0, enabled = true, learned = false, learnReqs = []) {
         this.classID = classID;
         this.classExp = classExp;
         this.enabled = enabled;
+        this.learned = learned
+    }
+}
+
+class Lazi_ClassChange_ClassLearnObject {
+    constructor(classID, classLvl){
+        this.classID = classID;
+        this.classLvl = classLvl;
     }
 }
 
@@ -248,7 +256,7 @@ Lazi.ClassChange.initializePluginCommands = function () {
     Lazi.Utils.DebugLog("Lazi_ClassChange: Initializing Plugin Commands");
     PluginManager.registerCommand("Lazi_ClassChange", "ModifyClasses", this.addActorClass);
     PluginManager.registerCommand("Lazi_ClassChange", "ModifyMenuAccess", this.ModifyMenuAccess);
-
+    PluginManager.registerCommand("Lazi_ClassChange", "ShowClassChangeScene", this.showClassChangeScene);
 }
 
 Lazi.ClassChange.initializeParameters = function () {
@@ -273,6 +281,10 @@ Lazi.ClassChange.getParam = function (paramName) {
     //We don't have params yet, initialize them.
     this.initialize();
     return this.params[paramName];
+}
+
+Lazi.ClassChange.showClassChangeScene = function(args){
+    SceneManager.push(Lazi_Scene_ClassChange);
 }
 
 Lazi.ClassChange.addActorClass = function (args) {
