@@ -118,6 +118,14 @@
  * @value actorMode
  * @default singleLevel
  * 
+ * @param usePercentages
+ * @text Preserve Percentages for HP/MP
+ * @desc Should HP/MP percentages match after a class change
+ * @type boolean
+ * @on Enable
+ * @off Disable
+ * @default off
+ * 
  * @param ActorModeSettings
  * @text Actor Mode Settings
  * 
@@ -246,6 +254,7 @@ Lazi.ClassChange.initializeParameters = function () {
     this.params.levelUpText = params.levelUpText;
     this.params.levelupMode = params.levelupMode;
     this.params.statGainType = params.statGainType;
+    this.params.usePercentages = params.usePercentages;
     this.functionParams = {};
     this.functionParams.MenuAccess = "enable";
 }
@@ -364,7 +373,7 @@ Lazi.ClassChange.initialize();
 //------------------------------//
 //        Game Intepreter       //
 //------------------------------//
-//Change EXP commnad, needs to change to faciliate modifying the actor base level.
+//Change EXP command, needs to change to faciliate modifying the actor base level.
 Lazi.ClassChange.GameInterpreter_command315 = Game_Interpreter.prototype.command315;
 Game_Interpreter.prototype.command315 = function (params) {
     if (Lazi.ClassChange.isActorLevelMode()) {
@@ -566,7 +575,7 @@ Game_Actor.prototype.changeClass = function (classId, keepExp) {
 Lazi.ClassChange.GameActor_isMaxLevel = Game_Actor.prototype.isMaxLevel;
 Game_Actor.prototype.isMaxLevel = function () {
     if (!Lazi.ClassChange.isActorLevelMode()) {
-        return Lazi.ClassChange.GameActor_isMaxLevel();
+        return Lazi.ClassChange.GameActor_isMaxLevel.apply(this, arguments);
     }
     return this.Lazi_GetACTORMODELevel() >= this.maxLevel();
 }
@@ -763,9 +772,20 @@ Lazi_Scene_ClassChange.prototype.useItem = function () {
 };
 
 Lazi_Scene_ClassChange.prototype.performClassSwap = function (item) {
+    let usePercentages = Lazi.ClassChange.getParam("usePercentages");
+    const actor = this.actor();
+
+    //Gotta stay proportional
+    if (usePercentages) {
+        console.log(actor);
+        var HPpercent = (actor.hp) / (actor.paramBase(0)) //0 = MHP
+        console.log(`HP Percent: ${actor.hp} / ${actor.paramBase(0)}`)
+        var MPpercent = (actor.mp) / (actor.paramBase(1)) //1 = MMP
+        console.log(`HP Percent: ${actor.mp} / ${actor.paramBase(1)}`)
+    }
     //We need to swap out the exp with the correct amount.
     if (Lazi.ClassChange.shouldShowLevels()) {
-        const actor = this.actor();
+
         actor._classId = item.classID;
         actor._level = Lazi.ClassChange.ClassLevelByExp(item.classID, item.classExp);
         actor._exp[item.classID] = item.classExp;
@@ -777,7 +797,13 @@ Lazi_Scene_ClassChange.prototype.performClassSwap = function (item) {
     else {
         this.actor().changeClass(item.classID, true);
     }
-    this.useItem();
+
+    //Use our already calculated percentages to change HP now that we've changed classes/levels
+    if (usePercentages){
+        actor.setHp(actor.paramBase(0) * HPpercent);
+        actor.setMp(actor.paramBase(1) * MPpercent);
+    }
+        this.useItem();
 }
 
 Lazi_Scene_ClassChange.prototype.onActorChange = function () {
