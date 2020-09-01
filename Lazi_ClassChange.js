@@ -247,7 +247,7 @@ Lazi.ClassChange.initialize = function () {
 Lazi.ClassChange.initializePluginCommands = function () {
     Lazi.Utils.DebugLog("Lazi_ClassChange: Initializing Plugin Commands");
     PluginManager.registerCommand("Lazi_ClassChange", "ModifyClasses", this.addActorClass);
-    PluginManager.registerCommand("Lazi_ClassChange", "ModifyMenuAccess", this.addActorClass);
+    PluginManager.registerCommand("Lazi_ClassChange", "ModifyMenuAccess", this.ModifyMenuAccess);
 
 }
 
