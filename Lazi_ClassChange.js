@@ -493,6 +493,13 @@ Game_Actor.prototype.Lazi_IncreaseParams = function (amount, paramID) {
     this.laziClassChange_params[paramID] += amount;
 }
 
+Game_Actor.prototype.Lazi_setLevelParams = function(amount, paramID, level){
+    if (this.laziClassChange_params_gainPerLevel[paramID] == undefined){
+        this.laziClassChange_params_gainPerLevel[paramID] = {};
+    }
+    this.laziClassChange_params_gainPerLevel[paramID][level] = amount;
+}
+
 ///Overwritten Functions///
 Lazi.ClassChange.GameActor_initMembers = Game_Actor.prototype.initMembers;
 Game_Actor.prototype.initMembers = function () {
@@ -502,6 +509,7 @@ Game_Actor.prototype.initMembers = function () {
         this.LaziClassChange_ACTORMODECLASS = null;
         if (Lazi.ClassChange.isStatGainMode()) {
             this.laziClassChange_params = [];
+            laziClassChange_params_gainPerLevel = {};
         }
     }
 }
@@ -522,6 +530,10 @@ Game_Actor.prototype.setup = function (actorId) {
             let currentParam = params[i];
             this.laziClassChange_params[i] = currentParam[level];
         }
+
+        //Init values, they won't be naturally due to not using normal params
+        this.setHp(this.laziClassChange_params[0]);
+        this.setMp(this.laziClassChange_params[1]);
         console.log("Starting Params are");
         console.log(this.laziClassChange_params);
     }
@@ -548,11 +560,13 @@ Game_Actor.prototype.gainExp = function (exp, onlyToBase = false) {
                         if (Lazi.ClassChange.getParam("statGainType")) {
                             let paramDiff = params[i][j] - params[i][j - 1];
                             this.Lazi_IncreaseParams(paramDiff, i);
+                            this.Lazi_setLevelParams(paramDiff, i , j)
                         }
 
                         //Use level 1 stats
                         else {
                             this.Lazi_IncreaseParams(params[i][1], i);
+                            this.Lazi_setLevelParams(params[i][1], i ,j);
                         }
                     }
                 }
@@ -563,6 +577,17 @@ Game_Actor.prototype.gainExp = function (exp, onlyToBase = false) {
             console.log("Refreshing after stat update");
             this.refresh();
         }
+
+        /* //We leveled down, need to mod skills down one level
+        if (currentLVL > this.lazi.Lazi_GetACTORMODELevel()){
+            if (Lazi.ClassChange.isStatGainMode()){
+                for (let i = 0; i < this.currentClass().length; ++i){
+                    for ()
+                    this.Lazi_IncreaseParams(-this.laziClassChange_params_gainPerLevel[i][currentLVL], i);
+                }
+            }
+            this.refresh();
+        } */
     }
 }
 
@@ -574,6 +599,9 @@ Game_Actor.prototype.changeExp = function (exp, show) {
 
 Lazi.ClassChange.GameActor_paramBase = Game_Actor.prototype.paramBase;
 Game_Actor.prototype.paramBase = function (paramId) {
+    if (paramId == 0){
+        console.log(`HP settings are: ${this.hp} / ${this.laziClassChange_params[paramId]}`)
+    }
     if (Lazi.ClassChange.isActorLevelMode()) {
         console.log(`Using Actor Mode Params`);
         if (this.LaziClassChange_ACTORMODECLASS == null) {
