@@ -31,6 +31,17 @@
  *       specific class will be used to determine their stats and 
  *       level.
  * 
+ * *Preserve Percentages for HP/MP -> This will look at the percentage of HP/MaxHP
+ *  MP/MaxMP of a character before switching classes and ensure that the new class
+ *  has the HP/MP set to the same percentage of their MaxHP/MaxMP
+ * 
+ * *Maintain Level + Percentage -> In Shared EXP mode, this will modify the actor's
+ *  total EXP to maintain the same level and percent to next level when changing
+ *  classes. This does not actually affect the growth rate of the class, so a class
+ *  with a faster growth rate will result in the actor leveling up faster and then
+ *  if the actor switches back to a class with a slower growth rate, they will keep
+ *  the same level and percent to next.
+ * 
  * ->Add A Class To An Actor<-
  * There are two methods to add a class to an actor: notetags or plugin 
  * commands.
