@@ -85,8 +85,23 @@
  * The "Enable/Disable Menu Option" plugin command is used to enable or disable 
  * access to the Change Classes menu option. This command has one parameter:
  * *State -> If set to enable, access to the menu option will be allowed. If set 
- * to disable, access to the menu option will not be allowed. If set to remove, the menu option will not appear in the menu at all.
+ * to disable, access to the menu option will not be allowed. If set to remove, 
+ * the menu option will not appear in the menu at all.
  * 
+ * 
+ * ->Show Class Change Menu Without Selecting From Menu Bar<-
+ * If you want a game where the player can only switch classes at set locations
+ * (say a shrine or training hall), do not enable the menu option and use
+ * the following plugin command on the event you wish to open the class change
+ * screen. The screen will open with showing the first character in the party
+ * and the other characters can be selected using the arrow buttons at the top
+ * of the screen.
+ * 
+ * =>Plugin Commands<=
+ * Use the "ShowClassChangeScene" plugin command to show the class change scene.
+ * This plugin command takes no arguments and will allow the player to change the
+ * classes of any party members they have. Pressing the cancel button will close
+ * the scene and return to normal gameplay.
  * 
  * @param menuOption
  * @text Add Entry To Menu
