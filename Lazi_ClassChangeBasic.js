@@ -208,28 +208,19 @@ if (!Imported.Lazi_ClassChange) {
     var Lazi = Lazi || {};
     Lazi.ClassChange = Lazi.ClassChange || {};
     Lazi.Utils = Lazi.Utils || {};
-    Lazi.Lazi_ClassChangeBasic.version = "1.0.2";
+    Lazi.Lazi_ClassChangeBasic.version = "1.0.1";
     Lazi.Utils.Debug = true;
 
     //------------------------------//
     //      Helper Objects          //
     //------------------------------//
     class Lazi_ClassChange_ClassObject {
-        constructor(classID, classExp = 0, enabled = true, learned = false, learnReqs = []) {
+        constructor(classID, classExp = 0, enabled = true) {
             this.classID = classID;
             this.classExp = classExp;
             this.enabled = enabled;
-            this.learned = learned
         }
     }
-
-    class Lazi_ClassChange_ClassLearnObject {
-        constructor(classID, classLvl) {
-            this.classID = classID;
-            this.classLvl = classLvl;
-        }
-    }
-
     Lazi.Utils.GetByClassID = function (classList, classID) {
         for (_class of classList) {
             if (_class.classID == classID) {
@@ -327,7 +318,7 @@ if (!Imported.Lazi_ClassChange) {
                     Lazi.ClassChange.performClassSwap(actor, newClass.classID, newClass.classExp);
                 }
                 else if (actor.laziClassChange_classes.length == 1){
-                    return;
+                    return
                 }
                 //Otherwise just use the second in the list. 
                 else {
