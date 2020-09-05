@@ -208,6 +208,7 @@ if (!Imported.Lazi_ClassChange) {
     var Lazi = Lazi || {};
     Lazi.ClassChange = Lazi.ClassChange || {};
     Lazi.Utils = Lazi.Utils || {};
+    Lazi.Lazi_ClassChangeBasic.version = "1.0.2";
     Lazi.Utils.Debug = true;
 
     //------------------------------//
