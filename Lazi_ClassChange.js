@@ -35,6 +35,33 @@
  *       determined by the class they currently have active and their level
  *       in that class.
  * 
+ *  *Preserve Percentages for HP/MP -> This will look at the percentage of HP/MaxHP
+ *  MP/MaxMP of a character before switching classes and ensure that the new class
+ *  has the HP/MP set to the same percentage of their MaxHP/MaxMP
+ * 
+ * *Maintain Level + Percentage -> In Shared EXP mode, this will modify the actor's
+ *  total EXP to maintain the same level and percent to next level when changing
+ *  classes. This does not actually affect the growth rate of the class, so a class
+ *  with a faster growth rate will result in the actor leveling up faster and then
+ *  if the actor switches back to a class with a slower growth rate, they will keep
+ *  the same level and percent to next.
+ * 
+ * *Level Up Text -> For use in Actor Mode. This is the text that will be displayed whenever
+ *  the actor gains a level in their base class.
+ * 
+ * *Level Up Mode -> For use in Actor Mode. This is the mode of level up that will be used
+ *  when the actor gains a level in their base class. There are two modes:
+ *      *Normal -> The parameters for the actor will be based on their base class level and
+ *       the parameter curves for that class.
+ *      *Stat Gain -> The parameters for the actor will be determined by what class they are
+ *       when they gain a level. Based on the stat gain type values will be added to their 
+ *       parameters when they level.
+ * 
+ * Current Level For Stat Gains? -> If this is set to true, the delta between the parameters
+ * for an actor's current base level and the next base level will be calculated and the values of the
+ * delta will be added to their stats. If this is set to false, the level 1 stats for the 
+ * class that the actor has set when they gain a base level will be used to increase their stats.
+ * 
  * ->Add A Class To An Actor<-
  * There are two methods to add a class to an actor: notetags or plugin 
  * commands.
@@ -73,6 +100,20 @@
  * ->Enable/Disable Menu Option<-
  * If the plugin is managing the Change Class menu option, it can be enabled or 
  * disabled through a plugin command.
+ * 
+ * ->Show Class Change Menu Without Selecting From Menu Bar<-
+ * If you want a game where the player can only switch classes at set locations
+ * (say a shrine or training hall), do not enable the menu option and use
+ * the following plugin command on the event you wish to open the class change
+ * screen. The screen will open with showing the first character in the party
+ * and the other characters can be selected using the arrow buttons at the top
+ * of the screen.
+ * 
+ * =>Plugin Commands<=
+ * Use the "ShowClassChangeScene" plugin command to show the class change scene.
+ * This plugin command takes no arguments and will allow the player to change the
+ * classes of any party members they have. Pressing the cancel button will close
+ * the scene and return to normal gameplay.
  * 
  * =>Plugin Commands<=
  * The "Enable/Disable Menu Option" plugin command is used to enable or disable 
@@ -126,6 +167,18 @@
  * @off Disable
  * @default off
  * 
+ * @param SharedEXPSettings
+ * @text Shared EXP Mode Settings
+ * 
+ * @param sharedModeMaintainLevel
+ * @parent SharedEXPSettings
+ * @text Maintain Level + Percentage
+ * @desc When enabled the current level and percentage to next will be maintained when changing classes
+ * @on Enable
+ * @off Disable
+ * @type boolean
+ * @default off
+ * 
  * @param ActorModeSettings
  * @text Actor Mode Settings
  * 
@@ -142,7 +195,7 @@
  * @type select
  * @option Normal
  * @value normalMode
- * @option Stat Gain - DO NOT USE NOT FUNCTIONAL
+ * @option Stat Gain
  * @value statMode
  * 
  * @param statGainType
@@ -210,25 +263,17 @@ Imported.Lazi_ClassChange = true;
 var Lazi = Lazi || {};
 Lazi.ClassChange = Lazi.ClassChange || {};
 Lazi.Utils = Lazi.Utils || {};
-Lazi.ClassChange.version = "1.0.1";
+Lazi.ClassChange.version = "1.0.2";
 Lazi.Utils.Debug = true;
 
 //------------------------------//
 //      Helper Objects          //
 //------------------------------//
 class Lazi_ClassChange_ClassObject {
-    constructor(classID, classExp = 0, enabled = true, learned = false, learnReqs = []) {
+    constructor(classID, classExp = 0, enabled = true) {
         this.classID = classID;
         this.classExp = classExp;
         this.enabled = enabled;
-        this.learned = learned
-    }
-}
-
-class Lazi_ClassChange_ClassLearnObject {
-    constructor(classID, classLvl){
-        this.classID = classID;
-        this.classLvl = classLvl;
     }
 }
 
@@ -270,6 +315,7 @@ Lazi.ClassChange.initializeParameters = function () {
     this.params.levelupMode = params.levelupMode;
     this.params.statGainType = params.statGainType;
     this.params.usePercentages = params.usePercentages;
+    this.params.sharedModeMaintainLevel = params.sharedModeMaintainLevel;
     this.functionParams = {};
     this.functionParams.MenuAccess = "enable";
 }
@@ -283,13 +329,11 @@ Lazi.ClassChange.getParam = function (paramName) {
     return this.params[paramName];
 }
 
-Lazi.ClassChange.showClassChangeScene = function(args){
+Lazi.ClassChange.showClassChangeScene = function (args) {
     SceneManager.push(Lazi_Scene_ClassChange);
 }
 
 Lazi.ClassChange.addActorClass = function (args) {
-    Lazi.Utils.DebugLog("AddActorClass called with arguments: ");
-    Lazi.Utils.DebugLog(args);
     if (args.actorId == -1 || !args.classId == -1) {
         Lazi.Utils.DebugLog("ERROR!:Cannot have an actor or class with an ID of -1");
         return;
@@ -322,6 +366,24 @@ Lazi.ClassChange.addActorClass = function (args) {
     }
     if (args.type == "Remove") {
         Lazi.Utils.DebugLog("Removing the class with ID " + args.classId);
+
+        //Uh oh, we are currently that class. We should bump ourselves to something else.
+        let actor = $gameActors_.data[args.actorId]
+        if (actor._classId == args.classId){
+            //Uh oh. We only have one class and it's this class, do nothing.
+            if (actor.laziClassChange_classes.length == 1 && actor.laziClassChange_classes[0].classID == actor._classId){
+                return;
+            }
+            if (actor.LaziClassChange_classes[0].classID != actor._classId){
+                let newClass = actor.LaziClassChange_classes[0];
+                Lazi.ClassChange.performClassSwap(actor, newClass.classID, newClass.classExp);
+            }
+            //Otherwise just use the second in the list. 
+            else{
+                let newClass = actor.laziClassChange_classes[1];
+                Lazi.ClassChange.performClassSwap(actor, newClass.classID, newClass.classExp);
+            }
+        }
         $gameActors._data[args.actorId].LaziClassChange_classes = currentClasses.filter((item) => {
             return item.classID != args.classId;
         })
@@ -341,7 +403,11 @@ Lazi.ClassChange.isActorLevelMode = function () {
 }
 
 Lazi.ClassChange.isStatGainMode = function () {
-    return (Lazi.ClassChange.getParam("levelupMode") == "statMode")
+    return (Lazi.ClassChange.getParam("levelupMode") == "statMode") && (this.isActorLevelMode());
+}
+
+Lazi.ClassChange.isSharedMaintainLevel = function () {
+    return Lazi.ClassChange.getParam("sharedModeMaintainLevel")
 }
 
 Lazi.ClassChange.ClassLevelByExp = function (classId, expAmount) {
@@ -385,6 +451,36 @@ Lazi.ClassChange.ExpByClassLevel = function (classId, level) {
         (basis * Math.pow(level - 1, 0.9 + acc_a / 250) * level * (level + 1)) /
         (6 + Math.pow(level, 2) / 50 / acc_b) +
         (level - 1) * extra);
+}
+
+Lazi.ClassChange.performClassSwap = function(actor, newClassID, newClassExp){
+    let usePercentages = Lazi.ClassChange.getParam("usePercentages");
+
+    //Gotta stay proportional
+    if (usePercentages) {
+        var HPpercent = (actor.hp) / (actor.paramBase(0)) //0 = MHP
+        var MPpercent = (actor.mp) / (actor.paramBase(1)) //1 = MMP
+    }
+    //We need to swap out the exp with the correct amount.
+    if (Lazi.ClassChange.shouldShowLevels()) {
+
+        actor._classId = newClassID;
+        actor._level = Lazi.ClassChange.ClassLevelByExp(newClassID, newClassExp);
+        actor._exp[newClassID] = newClassExp;
+        actor.initSkills();
+        actor.refresh();
+    }
+
+    //Keeping exp, can just use default class change function. Woo!
+    else {
+        actor.changeClass(newClassID, true);
+    }
+
+    //Use our already calculated percentages to change HP now that we've changed classes/levels
+    if (usePercentages) {
+        actor.setHp(Math.round(actor.paramBase(0) * HPpercent));
+        actor.setMp(Math.round(actor.paramBase(1) * MPpercent));
+    }
 }
 
 Lazi.ClassChange.initialize();
@@ -472,6 +568,10 @@ Game_Actor.prototype.Lazi_ACTORMODEDisplayLevelUp = function () {
     $gameMessage.add(text);
 }
 
+Game_Actor.prototype.Lazi_IncreaseParams = function (amount, paramID) {
+    this.laziClassChange_params[paramID] += amount;
+}
+
 ///Overwritten Functions///
 Lazi.ClassChange.GameActor_initMembers = Game_Actor.prototype.initMembers;
 Game_Actor.prototype.initMembers = function () {
@@ -489,7 +589,6 @@ Lazi.ClassChange.GameActor_setup = Game_Actor.prototype.setup;
 Game_Actor.prototype.setup = function (actorId) {
     //We need to generate a list using their notetag
     if (this.LaziClassChange_classes == undefined || this.LaziClassChange_classes.length == 0) {
-        Lazi.Utils.DebugLog(`Generating class list for actor with ID ${actorId}`)
         this.LaziClassChange_classes = this.Lazi_GenerateClassList(actorId);
     }
     Lazi.ClassChange.GameActor_setup.apply(this, arguments);
@@ -501,8 +600,10 @@ Game_Actor.prototype.setup = function (actorId) {
             let currentParam = params[i];
             this.laziClassChange_params[i] = currentParam[level];
         }
-        console.log("Starting Params are");
-        console.log(this.laziClassChange_params);
+
+        //Init values, they won't be naturally due to not using normal params
+        this.setHp(this.laziClassChange_params[0]);
+        this.setMp(this.laziClassChange_params[1]);
     }
 }
 
@@ -516,30 +617,27 @@ Game_Actor.prototype.gainExp = function (exp, onlyToBase = false) {
         this.LaziClassChange_ACTORMODECLASS.classExp += Math.round(exp * this.finalExpRate());
         if (currentLVL < this.Lazi_GetACTORMODELevel()) {
             if (Lazi.ClassChange.isStatGainMode()) {
-                console.log("Params Before Level Are");
-                console.log(this.laziClassChange_params);
                 let params = $dataClasses[this._classId].params;
-                //Use current level
-                if (Lazi.ClassChange.getParam("statGainType")) {
-                    for (let i = 0; i < params.length; ++i) {
-                        let paramDiff = params[i][this.Lazi_GetACTORMODELevel()] - params[i][currentLVL];
-                        this.laziClassChange_params[i] += paramDiff;
-                    }
-                }
-                //Use level 1 stats
-                else {
-                    let levelsGained = this.Lazi_GetACTORMODELevel() - currentLVL;
-                    for (let i = 0; i < params.length; ++i) {
-                        for (let j = 0; j < levelsGained; ++j) {
-                            this.laziClassChange_params[i] += params[i][1];
+                //let levelsGained = this.Lazi_GetACTORMODELevel() - currentLVL;
+                for (let i = 0; i < params.length; ++i) {
+                    for (let j = (currentLVL + 1); j <= this.Lazi_GetACTORMODELevel(); ++j) {
+
+                        //Use current level
+                        if (Lazi.ClassChange.getParam("statGainType")) {
+                            let paramDiff = params[i][j] - params[i][j - 1];
+                            this.Lazi_IncreaseParams(paramDiff, i);
+                            this.Lazi_setLevelParams(paramDiff, i , j)
+                        }
+
+                        //Use level 1 stats
+                        else {
+                            this.Lazi_IncreaseParams(params[i][1], i);
+                            this.Lazi_setLevelParams(params[i][1], i ,j);
                         }
                     }
                 }
-                console.log("Params After Level Are");
-                console.log(this.laziClassChange_params);
             }
             this.Lazi_ACTORMODEDisplayLevelUp();
-            console.log("Refreshing after stat update");
             this.refresh();
         }
     }
@@ -563,8 +661,6 @@ Game_Actor.prototype.paramBase = function (paramId) {
                 Lazi.Utils.DebugLog("ERROR!: We're using stat gain but don't have any params set!");
                 return 0;
             }
-            console.log(`Fetching param with ID ${paramId}`);
-            console.log(`Param value is ${this.laziClassChange_params[paramId]}`);
             return this.laziClassChange_params[paramId];
         }
         return this.Lazi_GetACTORMODEClass().params[paramId][this.Lazi_GetACTORMODELevel()]
@@ -575,20 +671,30 @@ Game_Actor.prototype.paramBase = function (paramId) {
 
 Lazi.ClassChange.GameActor_changeClass = Game_Actor.prototype.changeClass;
 Game_Actor.prototype.changeClass = function (classId, keepExp) {
-
-    Lazi.Utils.DebugLog("Checking to see if we have class " + classId + " in our list");
     let _class = Lazi.Utils.GetByClassID(this.LaziClassChange_classes, classId);
     if (!_class) {
         //We don't have it but they clearly want to add it for this character, let's add a new entry to list
         this.LaziClassChange_classes.push(new Lazi_ClassChange_ClassObject(classId, 0, true));
         _class = Lazi.Utils.GetByClassID(this.LaziClassChange_classes, classId);
+    } else if (Lazi.ClassChange.isSharedMaintainLevel()) {
+        var currentLvl = this._level;
+        var currentEXP = this._exp[this._classId];
+        var EXPForCurrent = Lazi.ClassChange.ExpByClassLevel(this._classId, currentLvl);
+        var EXPForNext = Lazi.ClassChange.ExpByClassLevel(this._classId, currentLvl + 1);
+        var percentToNext = (currentEXP - EXPForCurrent) / (EXPForNext - EXPForCurrent);
     }
     Lazi.ClassChange.GameActor_changeClass.apply(this, arguments);
     if (!keepExp) {
         this._exp[_class.classID] = _class.classExp;
         this._level = Lazi.Utils.ClassLevelByExp(_class.classExp);
+    } else if (Lazi.ClassChange.isSharedMaintainLevel()) {
+        let EXPForNewNext = Lazi.ClassChange.ExpByClassLevel(this._classId, currentLvl +1);
+        let EXPForNewCurrent = Lazi.ClassChange.ExpByClassLevel(this._classId, currentLvl);
+        this._level = currentLvl;
+        this._exp[this._classId] = Math.round(EXPForNewCurrent + ((EXPForNewNext-EXPForNewCurrent) * percentToNext));
+        this.refresh();
+        this.initSkills();
     }
-    return;
 }
 
 Lazi.ClassChange.GameActor_isMaxLevel = Game_Actor.prototype.isMaxLevel;
@@ -605,13 +711,13 @@ Game_Actor.prototype.isMaxLevel = function () {
 
 Lazi.ClassChange.WindowStatusBase_drawActorClass = Window_StatusBase.prototype.drawActorClass;
 Window_StatusBase.prototype.drawActorClass = function (actor, x, y, width) {
-    if (Lazi.ClassChange.isActorLevelMode()) {
+    if (!Lazi.ClassChange.isActorLevelMode()) {
+        Lazi.ClassChange.WindowStatusBase_drawActorClass.apply(this, arguments);
+    } else {
         width = width || 168;
         this.resetTextColor();
         let text = actor.currentClass().name + " Lv. " + actor._level;
         this.drawText(text, x, y, width);
-    } else {
-        Lazi.ClassChange.WindowStatusBase_drawActorClass.apply(this, arguments);
     }
 }
 
@@ -619,7 +725,7 @@ Window_StatusBase.prototype.drawActorClass = function (actor, x, y, width) {
 Lazi.ClassChange.WindowStatusBase_drawActorLevel = Window_StatusBase.prototype.drawActorLevel;
 Window_StatusBase.prototype.drawActorLevel = function (actor, x, y) {
     if (!Lazi.ClassChange.isActorLevelMode()) {
-        Lazi.ClassChange.WindowStatusBase_drawActorLevel.apply(this, [actor, x, y]);
+        Lazi.ClassChange.WindowStatusBase_drawActorLevel.apply(this, arguments);
     } else {
         this.changeTextColor(ColorManager.systemColor());
         this.drawText(TextManager.levelA, x, y, 48);
@@ -634,7 +740,7 @@ Window_StatusBase.prototype.drawActorLevel = function (actor, x, y) {
 Lazi.ClassChange.WindowStatus_expTotalValue = Window_Status.prototype.expTotalValue;
 Window_Status.prototype.expTotalValue = function () {
     if (!Lazi.ClassChange.isActorLevelMode()) {
-        return Lazi.ClassChange.WindowStatus_expTotalValue();
+        return Lazi.ClassChange.WindowStatus_expTotalValue.apply(this, arguments);
     }
     if (this._actor.isMaxLevel()) {
         return "-------";
@@ -646,7 +752,7 @@ Window_Status.prototype.expTotalValue = function () {
 Lazi.ClassChange.WindowStatus_expNextValue = Window_Status.prototype.expNextValue;
 Window_Status.prototype.expNextValue = function () {
     if (!Lazi.ClassChange.isActorLevelMode()) {
-        return Lazi.ClassChange.WindowStatus_expNextValue();
+        return Lazi.ClassChange.WindowStatus_expNextValue.apply(this, arguments);
     }
     if (this._actor.isMaxLevel()) {
         return "-------";
@@ -791,38 +897,9 @@ Lazi_Scene_ClassChange.prototype.useItem = function () {
 };
 
 Lazi_Scene_ClassChange.prototype.performClassSwap = function (item) {
-    let usePercentages = Lazi.ClassChange.getParam("usePercentages");
     const actor = this.actor();
-
-    //Gotta stay proportional
-    if (usePercentages) {
-        console.log(actor);
-        var HPpercent = (actor.hp) / (actor.paramBase(0)) //0 = MHP
-        console.log(`HP Percent: ${actor.hp} / ${actor.paramBase(0)}`)
-        var MPpercent = (actor.mp) / (actor.paramBase(1)) //1 = MMP
-        console.log(`HP Percent: ${actor.mp} / ${actor.paramBase(1)}`)
-    }
-    //We need to swap out the exp with the correct amount.
-    if (Lazi.ClassChange.shouldShowLevels()) {
-
-        actor._classId = item.classID;
-        actor._level = Lazi.ClassChange.ClassLevelByExp(item.classID, item.classExp);
-        actor._exp[item.classID] = item.classExp;
-        actor.initSkills();
-        actor.refresh();
-    }
-
-    //Keeping exp, can just use default class change function. Woo!
-    else {
-        this.actor().changeClass(item.classID, true);
-    }
-
-    //Use our already calculated percentages to change HP now that we've changed classes/levels
-    if (usePercentages){
-        actor.setHp(actor.paramBase(0) * HPpercent);
-        actor.setMp(actor.paramBase(1) * MPpercent);
-    }
-        this.useItem();
+    Lazi.ClassChange.performClassSwap(actor, item.classID, item.classExp);
+    this.useItem();
 }
 
 Lazi_Scene_ClassChange.prototype.onActorChange = function () {
