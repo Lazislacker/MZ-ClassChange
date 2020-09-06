@@ -628,13 +628,11 @@ Game_Actor.prototype.gainExp = function (exp, onlyToBase = false) {
                         if (Lazi.ClassChange.getParam("statGainType")) {
                             let paramDiff = params[i][j] - params[i][j - 1];
                             this.Lazi_IncreaseParams(paramDiff, i);
-                            this.Lazi_setLevelParams(paramDiff, i , j)
                         }
 
                         //Use level 1 stats
                         else {
                             this.Lazi_IncreaseParams(params[i][1], i);
-                            this.Lazi_setLevelParams(params[i][1], i ,j);
                         }
                     }
                 }
