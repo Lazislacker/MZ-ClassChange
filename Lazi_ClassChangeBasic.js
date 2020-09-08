@@ -206,10 +206,10 @@ if (!Imported.Lazi_ClassChange) {
     Imported.Lazi_ClassChangeBasic = true;
 
     var Lazi = Lazi || {};
-    Lazi.ClassChange = Lazi.ClassChange || {};
+    Lazi.ClassChangeBasic = Lazi.ClassChangeBasic || {};
     Lazi.Utils = Lazi.Utils || {};
-    Lazi.Lazi_ClassChangeBasic.version = "1.0.1";
-    Lazi.Utils.Debug = true;
+    Lazi.ClassChangeBasic.version = "1.0.1";
+    Lazi.Utils.Debug = false;
 
     //------------------------------//
     //      Helper Objects          //
@@ -219,6 +219,24 @@ if (!Imported.Lazi_ClassChange) {
             this.classID = classID;
             this.classExp = classExp;
             this.enabled = enabled;
+        }
+    }
+
+    class Lazi_ClassChange_ClassObjectLearnCondition {
+        constructor(requirements, comparison){
+
+            //If they didn't give us an OR or AND, just use OR
+            if (comparison.toLowerCase() != "or" && comparison.toLowerCase() != "and"){
+                this.comparison = "or"
+            }
+            this.requirements = requirements
+        }
+    }
+
+    class Lazi_ClassChange_ClastObjectLearnConditionRequirement {
+        constructor(classID, classLevel){
+            this.ID = classID;
+            this.level = classLevel;
         }
     }
     Lazi.Utils.GetByClassID = function (classList, classID) {
@@ -231,25 +249,26 @@ if (!Imported.Lazi_ClassChange) {
 
     Lazi.Utils.DebugLog = function (message) {
         if (Lazi.Utils.Debug) {
-            console.log(`Lazi_ClassChange: ${message}`);
+            console.log(`Lazi_ClassChangeBasic: ${message}`);
         }
     }
 
-    Lazi.ClassChange.initialize = function () {
-        Lazi.Utils.DebugLog("Lazi_ClassChangeBasic: Initializing...")
+    Lazi.ClassChangeBasic.initialize = function () {
+        Lazi.Utils.DebugLog("Initializing...")
+        this.generateLearnableClassList();
         this.initializePluginCommands();
         this.initializeParameters();
     }
 
-    Lazi.ClassChange.initializePluginCommands = function () {
-        Lazi.Utils.DebugLog("Lazi_ClassChange: Initializing Plugin Commands");
+    Lazi.ClassChangeBasic.initializePluginCommands = function () {
+        Lazi.Utils.DebugLog("Initializing Plugin Commands");
         PluginManager.registerCommand("Lazi_ClassChangeBasic", "ModifyClasses", this.addActorClass);
         PluginManager.registerCommand("Lazi_ClassChangeBasic", "ModifyMenuAccess", this.ModifyMenuAccess);
         PluginManager.registerCommand("Lazi_ClassChangeBasic", "ShowClassChangeScene", this.showClassChangeScene);
     }
 
-    Lazi.ClassChange.initializeParameters = function () {
-        Lazi.Utils.DebugLog("Lazi_ClassChangeBasic: Initializing Parameters");
+    Lazi.ClassChangeBasic.initializeParameters = function () {
+        Lazi.Utils.DebugLog("Initializing Parameters");
         const params = PluginManager.parameters("Lazi_ClassChangeBasic");
         this.params = {};
         this.params.createMenuOption = params.menuOption;
@@ -261,7 +280,26 @@ if (!Imported.Lazi_ClassChange) {
         this.functionParams.MenuAccess = "enable";
     }
 
-    Lazi.ClassChange.getParam = function (paramName) {
+    Lazi.ClassChangeBasic.generateLearnableClassList = function(){
+        let classes = $dataClasses;
+        for (_class of classes){
+            //Check to see if we have learn conditions
+            let note = _class.note;
+            console.log(note);
+            let matches = note.matchAll(/<\s*Lazi\s?Learnable\s?ClassAND[:]?\s*(.+)\s*>/ig)
+            if (matches){
+                for (match of matches){
+                    console.log(match[1]);
+                }
+            }
+        }
+    }
+
+    Lazi.ClassChangeBasic.checkForNewClasses = function(actor){
+
+    }
+
+    Lazi.ClassChangeBasic.getParam = function (paramName) {
         if (this.params) {
             return this.params[paramName];
         }
@@ -270,11 +308,11 @@ if (!Imported.Lazi_ClassChange) {
         return this.params[paramName];
     }
 
-    Lazi.ClassChange.showClassChangeScene = function (args) {
+    Lazi.ClassChangeBasic.showClassChangeScene = function (args) {
         SceneManager.push(Lazi_Scene_ClassChange);
     }
 
-    Lazi.ClassChange.addActorClass = function (args) {
+    Lazi.ClassChangeBasic.addActorClass = function (args) {
         if (args.actorId == -1 || !args.classId == -1) {
             Lazi.Utils.DebugLog("ERROR!:Cannot have an actor or class with an ID of -1");
             return;
@@ -315,7 +353,7 @@ if (!Imported.Lazi_ClassChange) {
                 }
                 if (actor.LaziClassChange_classes[0].classID != actor._classId) {
                     let newClass = actor.LaziClassChange_classes[0];
-                    Lazi.ClassChange.performClassSwap(actor, newClass.classID, newClass.classExp);
+                    Lazi.ClassChangeBasic.performClassSwap(actor, newClass.classID, newClass.classExp);
                 }
                 else if (actor.laziClassChange_classes.length == 1){
                     return
@@ -323,7 +361,7 @@ if (!Imported.Lazi_ClassChange) {
                 //Otherwise just use the second in the list. 
                 else {
                     let newClass = actor.laziClassChange_classes[1];
-                    Lazi.ClassChange.performClassSwap(actor, newClass.classID, newClass.classExp);
+                    Lazi.ClassChangeBasic.performClassSwap(actor, newClass.classID, newClass.classExp);
                 }
             }
             $gameActors._data[args.actorId].LaziClassChange_classes = currentClasses.filter((item) => {
@@ -332,19 +370,24 @@ if (!Imported.Lazi_ClassChange) {
         }
     }
 
-    Lazi.ClassChange.ModifyMenuAccess = function (args) {
+    Lazi.ClassChangeBasic.ModifyMenuAccess = function (args) {
         this.functionParams.MenuAccess = args.state;
     }
 
-    Lazi.ClassChange.shouldShowLevels = function () {
+    Lazi.ClassChangeBasic.shouldShowLevels = function () {
         return !(this.getParam("levelSystemType") == "singleLevel");
     }
 
-    Lazi.ClassChange.isSharedMaintainLevel = function () {
-        return Lazi.ClassChange.getParam("sharedModeMaintainLevel")
+    Lazi.ClassChangeBasic.isSharedMaintainLevel = function () {
+        return (Lazi.ClassChangeBasic.getParam("sharedModeMaintainLevel") == "true") && (Lazi.ClassChangeBasic.getParam("levelSystemType") == "singleLevel")
+    }
+    
+    Lazi.ClassChangeBasic.shouldUsePercentages = function(){
+        //Uses string despite being a boolean type.
+        return Lazi.ClassChangeBasic.getParam("usePercentages") == "true";
     }
 
-    Lazi.ClassChange.ClassLevelByExp = function (classId, expAmount) {
+    Lazi.ClassChangeBasic.ClassLevelByExp = function (classId, expAmount) {
         const c = $dataClasses[classId];
         if (!c) {
             return -1;
@@ -372,7 +415,7 @@ if (!Imported.Lazi_ClassChange) {
         }
     }
 
-    Lazi.ClassChange.ExpByClassLevel = function (classId, level) {
+    Lazi.ClassChangeBasic.ExpByClassLevel = function (classId, level) {
         const c = $dataClasses[classId];
         if (!c) {
             return -1;
@@ -387,19 +430,17 @@ if (!Imported.Lazi_ClassChange) {
             (level - 1) * extra);
     }
 
-    Lazi.ClassChange.performClassSwap = function (actor, newClassID, newClassExp) {
-        let usePercentages = Lazi.ClassChange.getParam("usePercentages");
-
+    Lazi.ClassChangeBasic.performClassSwap = function (actor, newClassID, newClassExp) {
         //Gotta stay proportional
-        if (usePercentages) {
+        if (Lazi.ClassChangeBasic.shouldUsePercentages()) {
             var HPpercent = (actor.hp) / (actor.paramBase(0)) //0 = MHP
             var MPpercent = (actor.mp) / (actor.paramBase(1)) //1 = MMP
         }
         //We need to swap out the exp with the correct amount.
-        if (Lazi.ClassChange.shouldShowLevels()) {
+        if (Lazi.ClassChangeBasic.shouldShowLevels()) {
 
             actor._classId = newClassID;
-            actor._level = Lazi.ClassChange.ClassLevelByExp(newClassID, newClassExp);
+            actor._level = Lazi.ClassChangeBasic.ClassLevelByExp(newClassID, newClassExp);
             actor._exp[newClassID] = newClassExp;
             actor.initSkills();
             actor.refresh();
@@ -411,14 +452,14 @@ if (!Imported.Lazi_ClassChange) {
         }
 
         //Use our already calculated percentages to change HP now that we've changed classes/levels
-        if (usePercentages) {
+        if (Lazi.ClassChangeBasic.shouldUsePercentages()) {
             actor.setHp(Math.round(actor.paramBase(0) * HPpercent));
             actor.setMp(Math.round(actor.paramBase(1) * MPpercent));
         }
     }
 
 
-    Lazi.ClassChange.initialize();
+    Lazi.ClassChangeBasic.initialize();
 
     //------------------------------//
     //        Game Actor            //
@@ -429,7 +470,7 @@ if (!Imported.Lazi_ClassChange) {
         const actor = $dataActors[actorId]
         const note = actor.note;
         let classList = [];
-        classList.push(new Lazi_ClassChange_ClassObject(actor.classId, Lazi.ClassChange.ExpByClassLevel(actor.classId, actor.initialLevel)))
+        classList.push(new Lazi_ClassChange_ClassObject(actor.classId, Lazi.ClassChangeBasic.ExpByClassLevel(actor.classId, actor.initialLevel)))
         let matches = note.matchAll(/<\s*Lazi\s?Give\s?Class[:]?\s*(\d+)\s*>/ig)
         if (matches) {
             for (match of matches) {
@@ -450,69 +491,68 @@ if (!Imported.Lazi_ClassChange) {
     }
 
     ///Overwritten Functions///
-    Lazi.ClassChange.GameActor_initMembers = Game_Actor.prototype.initMembers;
+    Lazi.ClassChangeBasic.GameActor_initMembers = Game_Actor.prototype.initMembers;
     Game_Actor.prototype.initMembers = function () {
-        Lazi.ClassChange.GameActor_initMembers.apply(this, arguments);
+        Lazi.ClassChangeBasic.GameActor_initMembers.apply(this, arguments);
         this.LaziClassChange_classes = [];
     }
 
-    Lazi.ClassChange.GameActor_setup = Game_Actor.prototype.setup;
+    Lazi.ClassChangeBasic.GameActor_setup = Game_Actor.prototype.setup;
     Game_Actor.prototype.setup = function (actorId) {
         //We need to generate a list using their notetag
         if (this.LaziClassChange_classes == undefined || this.LaziClassChange_classes.length == 0) {
-            Lazi.Utils.DebugLog(`Lazi_ClassChangeBasic: Generating class list for actor with ID ${actorId}`)
+            Lazi.Utils.DebugLog(`Generating class list for actor with ID ${actorId}`)
             this.LaziClassChange_classes = this.Lazi_GenerateClassList(actorId);
         }
-        Lazi.ClassChange.GameActor_setup.apply(this, arguments);
+        Lazi.ClassChangeBasic.GameActor_setup.apply(this, arguments);
     }
 
-    Lazi.ClassChange.GameActor_changeExp = Game_Actor.prototype.changeExp;
+    Lazi.ClassChangeBasic.GameActor_changeExp = Game_Actor.prototype.changeExp;
     Game_Actor.prototype.changeExp = function (exp, show) {
-        Lazi.ClassChange.GameActor_changeExp.apply(this, arguments);
+        Lazi.ClassChangeBasic.GameActor_changeExp.apply(this, arguments);
         Lazi.Utils.GetByClassID(this.LaziClassChange_classes, this._classId).classExp = this._exp[this._classId];
     }
 
-    Lazi.ClassChange.GameActor_changeClass = Game_Actor.prototype.changeClass;
+    Lazi.ClassChangeBasic.GameActor_changeClass = Game_Actor.prototype.changeClass;
     Game_Actor.prototype.changeClass = function (classId, keepExp) {
 
-        Lazi.Utils.DebugLog("Lazi_ClassChangeBasic: Checking to see if we have class " + classId + " in our list");
         let _class = Lazi.Utils.GetByClassID(this.LaziClassChange_classes, classId);
         if (!_class) {
             //We don't have it but they clearly want to add it for this character, let's add a new entry to list
             this.LaziClassChange_classes.push(new Lazi_ClassChange_ClassObject(classId, 0, true));
             _class = Lazi.Utils.GetByClassID(this.LaziClassChange_classes, classId);
-        } else if (Lazi.ClassChange.isSharedMaintainLevel()) {
+        } else if (Lazi.ClassChangeBasic.isSharedMaintainLevel()) {
             var currentLvl = this._level;
             var currentEXP = this._exp[this._classId];
-            var EXPForCurrent = Lazi.ClassChange.ExpByClassLevel(this._classId, currentLvl);
-            var EXPForNext = Lazi.ClassChange.ExpByClassLevel(this._classId, currentLvl + 1);
+            var EXPForCurrent = Lazi.ClassChangeBasic.ExpByClassLevel(this._classId, currentLvl);
+            var EXPForNext = Lazi.ClassChangeBasic.ExpByClassLevel(this._classId, currentLvl + 1);
             var percentToNext = (currentEXP - EXPForCurrent) / (EXPForNext - EXPForCurrent);
         }
-        Lazi.ClassChange.GameActor_changeClass.apply(this, arguments);
+        Lazi.ClassChangeBasic.GameActor_changeClass.apply(this, arguments);
         if (!keepExp) {
             this._exp[_class.classID] = _class.classExp;
             this._level = Lazi.Utils.ClassLevelByExp(_class.classExp);
-        } else if (Lazi.ClassChange.isSharedMaintainLevel()) {
-            let EXPForNewNext = Lazi.ClassChange.ExpByClassLevel(this._classId, currentLvl + 1);
-            let EXPForNewCurrent = Lazi.ClassChange.ExpByClassLevel(this._classId, currentLvl);
+        } else if (Lazi.ClassChangeBasic.isSharedMaintainLevel()) {
+            let EXPForNewNext = Lazi.ClassChangeBasic.ExpByClassLevel(this._classId, currentLvl + 1);
+            let EXPForNewCurrent = Lazi.ClassChangeBasic.ExpByClassLevel(this._classId, currentLvl);
             this._level = currentLvl;
             this._exp[this._classId] = Math.round(EXPForNewCurrent + ((EXPForNewNext - EXPForNewCurrent) * percentToNext));
-            this.refresh();
-            this.initSkills();
         }
+        this.refresh();
+        this.initSkills();
     }
 
     //------------------------------//
     //     Window MenuCommand       //
     //------------------------------//
-    Lazi.ClassChange.WindowMenuCommand_addMainCommands = Window_MenuCommand.prototype.addMainCommands;
+    Lazi.ClassChangeBasic.WindowMenuCommand_addMainCommands = Window_MenuCommand.prototype.addMainCommands;
     Window_MenuCommand.prototype.addMainCommands = function () {
-        Lazi.ClassChange.WindowMenuCommand_addMainCommands.apply(this, arguments);
-        if (Lazi.ClassChange.getParam("createMenuOption")) {
-            if (Lazi.ClassChange.functionParams.MenuAccess == "enable") {
-                this.addCommand(Lazi.ClassChange.getParam("menuOptionText"), "classchange", this.areMainCommandsEnabled());
-            } else if (Lazi.ClassChange.functionParams.MenuAccess == "disable") {
-                this.addCommand(Lazi.ClassChange.getParam("menuOptionText"), "classchange", false);
+        Lazi.ClassChangeBasic.WindowMenuCommand_addMainCommands.apply(this, arguments);
+        if (Lazi.ClassChangeBasic.getParam("createMenuOption")) {
+            if (Lazi.ClassChangeBasic.functionParams.MenuAccess == "enable") {
+                this.addCommand(Lazi.ClassChangeBasic.getParam("menuOptionText"), "classchange", this.areMainCommandsEnabled());
+            } else if (Lazi.ClassChangeBasic.functionParams.MenuAccess == "disable") {
+                this.addCommand(Lazi.ClassChangeBasic.getParam("menuOptionText"), "classchange", false);
             } else {
                 //Don't add it, the option must set to remove.
             }
@@ -523,16 +563,16 @@ if (!Imported.Lazi_ClassChange) {
     //------------------------------//
     //        Scene Menu            //
     //------------------------------//
-    Lazi.ClassChange.SceneMenu_createCommandWindow = Scene_Menu.prototype.createCommandWindow;
+    Lazi.ClassChangeBasic.SceneMenu_createCommandWindow = Scene_Menu.prototype.createCommandWindow;
     Scene_Menu.prototype.createCommandWindow = function () {
-        Lazi.ClassChange.SceneMenu_createCommandWindow.apply(this, arguments);
+        Lazi.ClassChangeBasic.SceneMenu_createCommandWindow.apply(this, arguments);
         this._commandWindow.setHandler("classchange", this.commandPersonal.bind(this));
     }
 
-    Lazi.ClassChange.SceneMenu_onPersonalOk = Scene_Menu.prototype.onPersonalOk;
+    Lazi.ClassChangeBasic.SceneMenu_onPersonalOk = Scene_Menu.prototype.onPersonalOk;
     Scene_Menu.prototype.onPersonalOk = function () {
         if (this._commandWindow.currentSymbol() != "classchange") {
-            Lazi.ClassChange.SceneMenu_onPersonalOk.apply(this, arguments);
+            Lazi.ClassChangeBasic.SceneMenu_onPersonalOk.apply(this, arguments);
             return;
         }
 
@@ -639,7 +679,7 @@ if (!Imported.Lazi_ClassChange) {
 
     Lazi_Scene_ClassChange.prototype.performClassSwap = function (item) {
         const actor = this.actor();
-        Lazi.ClassChange.performClassSwap(actor, item.classID, item.classExp);
+        Lazi.ClassChangeBasic.performClassSwap(actor, item.classID, item.classExp);
         this.useItem();
     }
 
@@ -731,14 +771,14 @@ if (!Imported.Lazi_ClassChange) {
                 name: className,
                 iconIndex: undefined
             }, rect.x, rect.y, rect.width - levelWidth);
-            if (Lazi.ClassChange.shouldShowLevels())
+            if (Lazi.ClassChangeBasic.shouldShowLevels())
                 this.drawclassLevel(_class, rect.x, rect.y, rect.width);
             this.changePaintOpacity(1);
         }
     };
 
     Window_ClassList.prototype.levelWidth = function () {
-        if (Lazi.ClassChange.shouldShowLevels()) {
+        if (Lazi.ClassChangeBasic.shouldShowLevels()) {
             return this.textWidth("Lvl. 000");
         } else {
             return 0;
@@ -746,7 +786,7 @@ if (!Imported.Lazi_ClassChange) {
     };
 
     Window_ClassList.prototype.drawclassLevel = function (_class, x, y, width) {
-        this.drawText("Lvl. " + Lazi.ClassChange.ClassLevelByExp(_class.classID, _class.classExp), x, y, width, "right");
+        this.drawText("Lvl. " + Lazi.ClassChangeBasic.ClassLevelByExp(_class.classID, _class.classExp), x, y, width, "right");
     };
 
     Window_ClassList.prototype.updateHelp = function () {

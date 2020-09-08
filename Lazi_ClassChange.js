@@ -87,8 +87,7 @@
  *      *Add        -> Adds the class to the actor's class list or enables the 
  *                     class if the actor already has it but it is disabled.
  *      *Disable    -> Disables the class in the actor's class list making it 
- *                     impossible for them to switch to this class. TODO: Force
- *                     switch if active class
+ *                     impossible for them to switch to this class.
  *      *Remove     -> Removes the class from the actor's class list. WARNING: 
  *                     This is a permanent removal, if the class is later added 
  *                     back it will have the level reset to 1 and the exp reset 
@@ -208,7 +207,7 @@
  * @command ModifyClasses
  * @text Modify Actor Classes
  * @desc Command used to modify the classes that are assigned to an actor. Can be used to add or remove a class from the character.
- * WARNING: Once a class is removed, the level and exp for that class will also be lost. TODO: Modify this behavior to simply disable the class instead of removing it.
+ * WARNING: Once a class is removed, the level and exp for that class will also be lost.
  * 
  * @arg type
  * @text Type Of Action
@@ -264,7 +263,7 @@ var Lazi = Lazi || {};
 Lazi.ClassChange = Lazi.ClassChange || {};
 Lazi.Utils = Lazi.Utils || {};
 Lazi.ClassChange.version = "1.0.2";
-Lazi.Utils.Debug = true;
+Lazi.Utils.Debug = false;
 
 //------------------------------//
 //      Helper Objects          //
@@ -407,7 +406,12 @@ Lazi.ClassChange.isStatGainMode = function () {
 }
 
 Lazi.ClassChange.isSharedMaintainLevel = function () {
-    return Lazi.ClassChange.getParam("sharedModeMaintainLevel")
+    return (Lazi.ClassChange.getParam("sharedModeMaintainLevel") == "true") && (Lazi.ClassChange.getParam("levelSystemType") == "singleLevel")
+}
+
+Lazi.ClassChange.shouldUsePercentages = function(){
+    //Uses string despite being a boolean type.
+    return Lazi.ClassChange.getParam("usePercentages") == "true";
 }
 
 Lazi.ClassChange.ClassLevelByExp = function (classId, expAmount) {
@@ -454,10 +458,8 @@ Lazi.ClassChange.ExpByClassLevel = function (classId, level) {
 }
 
 Lazi.ClassChange.performClassSwap = function(actor, newClassID, newClassExp){
-    let usePercentages = Lazi.ClassChange.getParam("usePercentages");
-
     //Gotta stay proportional
-    if (usePercentages) {
+    if (Lazi.ClassChange.shouldUsePercentages()) {
         var HPpercent = (actor.hp) / (actor.paramBase(0)) //0 = MHP
         var MPpercent = (actor.mp) / (actor.paramBase(1)) //1 = MMP
     }
@@ -477,7 +479,7 @@ Lazi.ClassChange.performClassSwap = function(actor, newClassID, newClassExp){
     }
 
     //Use our already calculated percentages to change HP now that we've changed classes/levels
-    if (usePercentages) {
+    if (Lazi.ClassChange.shouldUsePercentages()) {
         actor.setHp(Math.round(actor.paramBase(0) * HPpercent));
         actor.setMp(Math.round(actor.paramBase(1) * MPpercent));
     }
@@ -626,13 +628,11 @@ Game_Actor.prototype.gainExp = function (exp, onlyToBase = false) {
                         if (Lazi.ClassChange.getParam("statGainType")) {
                             let paramDiff = params[i][j] - params[i][j - 1];
                             this.Lazi_IncreaseParams(paramDiff, i);
-                            this.Lazi_setLevelParams(paramDiff, i , j)
                         }
 
                         //Use level 1 stats
                         else {
                             this.Lazi_IncreaseParams(params[i][1], i);
-                            this.Lazi_setLevelParams(params[i][1], i ,j);
                         }
                     }
                 }
