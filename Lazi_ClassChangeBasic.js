@@ -221,6 +221,24 @@ if (!Imported.Lazi_ClassChange) {
             this.enabled = enabled;
         }
     }
+
+    class Lazi_ClassChange_ClassObjectLearnCondition {
+        constructor(requirements, comparison){
+
+            //If they didn't give us an OR or AND, just use OR
+            if (comparison.toLowerCase() != "or" && comparison.toLowerCase() != "and"){
+                this.comparison = "or"
+            }
+            this.requirements = requirements
+        }
+    }
+
+    class Lazi_ClassChange_ClastObjectLearnConditionRequirement {
+        constructor(classID, classLevel){
+            this.ID = classID;
+            this.level = classLevel;
+        }
+    }
     Lazi.Utils.GetByClassID = function (classList, classID) {
         for (_class of classList) {
             if (_class.classID == classID) {
@@ -237,6 +255,7 @@ if (!Imported.Lazi_ClassChange) {
 
     Lazi.ClassChangeBasic.initialize = function () {
         Lazi.Utils.DebugLog("Initializing...")
+        this.generateLearnableClassList();
         this.initializePluginCommands();
         this.initializeParameters();
     }
@@ -259,6 +278,25 @@ if (!Imported.Lazi_ClassChange) {
         this.params.sharedModeMaintainLevel = params.sharedModeMaintainLevel;
         this.functionParams = {};
         this.functionParams.MenuAccess = "enable";
+    }
+
+    Lazi.ClassChangeBasic.generateLearnableClassList = function(){
+        let classes = $dataClasses;
+        for (_class of classes){
+            //Check to see if we have learn conditions
+            let note = _class.note;
+            console.log(note);
+            let matches = note.matchAll(/<\s*Lazi\s?Learnable\s?ClassAND[:]?\s*(.+)\s*>/ig)
+            if (matches){
+                for (match of matches){
+                    console.log(match[1]);
+                }
+            }
+        }
+    }
+
+    Lazi.ClassChangeBasic.checkForNewClasses = function(actor){
+
     }
 
     Lazi.ClassChangeBasic.getParam = function (paramName) {
