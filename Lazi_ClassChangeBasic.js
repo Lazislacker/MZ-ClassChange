@@ -222,26 +222,6 @@ if (!Imported.Lazi_ClassChange) {
         }
     }
 
-    class Lazi_ClassChange_ClassObjectLearnCondition {
-        constructor(requirements, classID, comparison = "or") {
-
-            //If they didn't give us an OR or AND, just use OR
-            if (comparison.toLowerCase() != "or" && comparison.toLowerCase() != "and") {
-                this.comparison = "or"
-            } else {
-                this.comparison = comparison;
-            }
-            this.ID = classID;
-            this.requirements = requirements
-        }
-    }
-
-    class Lazi_ClassChange_ClassObjectLearnConditionRequirement {
-        constructor(classID, classLevel) {
-            this.ID = classID;
-            this.level = classLevel;
-        }
-    }
     Lazi.Utils.GetByClassID = function (classList, classID) {
         for (_class of classList) {
             if (_class.classID == classID) {
@@ -280,136 +260,6 @@ if (!Imported.Lazi_ClassChange) {
         this.params.sharedModeMaintainLevel = params.sharedModeMaintainLevel;
         this.functionParams = {};
         this.functionParams.MenuAccess = "enable";
-    }
-
-    Lazi.ClassChangeBasic.generateLearnableClassList = function () {
-        let classes = $dataClasses;
-        this.LearnableClasses = [];
-        for (let i = 1; i < classes.length; ++i) {
-            //Check to see if we have learn conditions
-            let _class = classes[i];
-            let note = _class.note;
-
-            //If we're in invidual level mode we expect to see *AND/*OR tags.
-            if (this.shouldShowLevels()) {
-                //AND
-                let matches = note.matchAll(/<\s*Lazi\s?Learnable\s?ClassAND[:]?\s*(.+)\s*>/ig)
-                if (matches) {
-                    for (match of matches) {
-
-                        //Grab our requirements and create a condition object
-                        let andpairs = match[1];
-                        let newLearnCondition = new Lazi_ClassChange_ClassObjectLearnCondition([], _class.id, "AND");
-
-                        //Get each of our requirements and create a requirement object for it
-                        let pairs = andpairs.matchAll(/\|\s*(\d+)\s*,\s*(\d+)\s*\|/ig)
-                        for (pair of pairs) {
-                            let newReq = new Lazi_ClassChange_ClassObjectLearnConditionRequirement(pair[1], pair[2]);
-                            newLearnCondition.requirements.push(newReq);
-                        }
-
-                        //Add it to the list of learnables
-                        this.LearnableClasses.push(newLearnCondition);
-                    }
-                }
-
-                //OR
-                matches = note.matchAll(/<\s*Lazi\s?Learnable\s?ClassOR[:]?\s*(.+)\s*>/ig)
-                if (matches) {
-                    for (match of matches) {
-
-                        //Grab our requirements and create a condition object
-                        let andpairs = match[1];
-                        let newLearnCondition = new Lazi_ClassChange_ClassObjectLearnCondition([], _class.id, "OR");
-
-                        //Get each of our requirements and create a requirement object for it
-                        let pairs = andpairs.matchAll(/\|\s*(\d+)\s*,\s*(\d+)\s*\|/ig)
-                        for (pair of pairs) {
-                            let newReq = new Lazi_ClassChange_ClassObjectLearnConditionRequirement(pair[1], pair[2]);
-                            newLearnCondition.requirements.push(newReq);
-                        }
-
-                        //Add it to the list of learnables
-                        this.LearnableClasses.push(newLearnCondition);
-                    }
-                }
-            }
-            //If we're in shared level mode we expect to see LaziLearnableClass tags.
-            else {
-                matches = note.matchAll(/<\s*Lazi\s?Learnable\s?Class[:]?\s*(\d+)\s*>/ig)
-                if (matches) {
-                    for (match of matches) {
-                        let level = match[1];
-                        let newLearnCondition = new Lazi_ClassChange_ClassObjectLearnCondition(parseInt(level), _class.id);
-
-                        //Add it to the list of learnables
-                        this.LearnableClasses.push(newLearnCondition);
-                    }
-                }
-            }
-        }
-    }
-
-    Lazi.ClassChangeBasic.checkForNewClasses = function (actor) {
-        for (learnable of this.LearnableClasses) {
-            if (this.shouldShowLevels()) {
-                let reqsSatisfied = [];
-                for (requirement of learnable.requirements) {
-
-                    //If they don't have any EXP in it or don't have it, don't bother checking
-                    if (actor._exp[requirement.ID] == 0 || !actor._exp[requirement.ID]) {
-                        reqsSatisfied.push(false);
-                        continue;
-                    }
-                    if (this.ClassLevelByExp(requirement.ID, actor._exp[requirement.ID]) >= requirement.level) {
-                        reqsSatisfied.push(true);
-                    } else {
-                        reqsSatisfied.push(false);
-                    }
-                }
-
-                console.log(reqsSatisfied);
-                //AND
-                let canLearn = true;
-                if (learnable.comparison.toLowerCase() == "and") {
-                    for (satisfied of reqsSatisfied) {
-                        if (!satisfied) {
-                            canLearn = false;
-                            break;
-                        }
-                    }
-                }
-                //OR
-                else {
-                    canLearn = false;
-                    for (satisfied of reqsSatisfied) {
-                        //If we have at least one true, no reason to continue
-                        if (satisfied) {
-                            canLearn = true;
-                            break;
-                        }
-                    }
-                }
-                if (canLearn) {
-                    //Reuse our Plugin Command to add it
-                    this.addActorClass({
-                        actorId: actor._actorId,
-                        classId: learnable.ID,
-                        type: "Add"
-                    })
-                }
-            }
-            else{
-                //All EXP should be the same so just use the current class'
-                if (this.ClassLevelByExp(actor._classId, actor._exp[actor._classId]) >= learnable.requirements){
-                    this.addActorClass({
-                        actorId: actor._actorId,
-                        classId: learnable.ID,
-                        type: "Add"
-                    });
-                }
-            }
-        }
     }
 
     Lazi.ClassChangeBasic.getParam = function (paramName) {
@@ -577,15 +427,6 @@ if (!Imported.Lazi_ClassChange) {
     Lazi.ClassChangeBasic.initialize();
 
     //------------------------------//
-    //        Scene Boot            //
-    //------------------------------//
-    Lazi.ClassChangeBasic.SceneBoot_onDatabaseLoaded = Scene_Boot.prototype.onDatabaseLoaded;
-    Scene_Boot.prototype.onDatabaseLoaded = function () {
-        Lazi.ClassChangeBasic.SceneBoot_onDatabaseLoaded.apply(this, arguments);
-        Lazi.ClassChangeBasic.generateLearnableClassList()
-    }
-
-    //------------------------------//
     //        Game Actor            //
     //------------------------------//
 
@@ -635,12 +476,6 @@ if (!Imported.Lazi_ClassChange) {
     Game_Actor.prototype.changeExp = function (exp, show) {
         Lazi.ClassChangeBasic.GameActor_changeExp.apply(this, arguments);
         Lazi.Utils.GetByClassID(this.LaziClassChange_classes, this._classId).classExp = this._exp[this._classId];
-    }
-
-    Lazi.ClassChangeBasic.GameActor_levelUp = Game_Actor.prototype.levelUp;
-    Game_Actor.prototype.levelUp = function () {
-        Lazi.ClassChangeBasic.GameActor_levelUp.apply(this, arguments);
-        Lazi.ClassChangeBasic.checkForNewClasses(this);
     }
 
     Lazi.ClassChangeBasic.GameActor_changeClass = Game_Actor.prototype.changeClass;
