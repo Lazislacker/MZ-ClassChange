@@ -414,6 +414,10 @@ Lazi.ClassChange.shouldUsePercentages = function(){
     return Lazi.ClassChange.getParam("usePercentages") == "true";
 }
 
+Lazi.ClassChange.CurrentLevelForStatGain = function(){
+    return Lazi.ClassChange.getParam("statGainType") == "true";
+}
+
 Lazi.ClassChange.ClassLevelByExp = function (classId, expAmount) {
     const c = $dataClasses[classId];
     if (!c) {
@@ -574,6 +578,26 @@ Game_Actor.prototype.Lazi_IncreaseParams = function (amount, paramID) {
     this.laziClassChange_params[paramID] += amount;
 }
 
+Game_Actor.prototype.Lazi_StatGainLevelUp = function(originalLvl){
+    let params = $dataClasses[this._classId].params;
+    for (let i = 0; i < params.length; ++i) {
+        for (let j = (originalLvl + 1); j <= this.Lazi_GetACTORMODELevel(); ++j) {
+            console.log(Lazi.ClassChange.CurrentLevelForStatGain());
+            //Use current level
+            if (Lazi.ClassChange.CurrentLevelForStatGain()) {
+                console.log("Using current level")
+                let paramDiff = params[i][j] - params[i][j - 1];
+                this.Lazi_IncreaseParams(paramDiff, i);
+            }
+            //Use level 1 stats
+            else {
+                console.log("Using level one");
+                this.Lazi_IncreaseParams(params[i][1], i);
+            }
+        }
+    }
+}
+
 ///Overwritten Functions///
 Lazi.ClassChange.GameActor_initMembers = Game_Actor.prototype.initMembers;
 Game_Actor.prototype.initMembers = function () {
@@ -594,14 +618,13 @@ Game_Actor.prototype.setup = function (actorId) {
         this.LaziClassChange_classes = this.Lazi_GenerateClassList(actorId);
     }
     Lazi.ClassChange.GameActor_setup.apply(this, arguments);
-    //Set our stats to the level X stats for our current class.
+    //Run stat gain based on the starting actor class level.
     if (Lazi.ClassChange.isStatGainMode()) {
-        let level = this.Lazi_GetACTORMODELevel();
-        let params = $dataClasses[this._classId].params
-        for (let i = 0; i < params.length; ++i) {
-            let currentParam = params[i];
-            this.laziClassChange_params[i] = currentParam[level];
+        let baseClassParams = this.Lazi_GetACTORMODEClass().params;
+        for (let i = 0; i < baseClassParams.length; ++i){
+            this.laziClassChange_params[i] = baseClassParams[i][1];
         }
+        this.Lazi_StatGainLevelUp(1);
 
         //Init values, they won't be naturally due to not using normal params
         this.setHp(this.laziClassChange_params[0]);
@@ -619,23 +642,7 @@ Game_Actor.prototype.gainExp = function (exp, onlyToBase = false) {
         this.LaziClassChange_ACTORMODECLASS.classExp += Math.round(exp * this.finalExpRate());
         if (currentLVL < this.Lazi_GetACTORMODELevel()) {
             if (Lazi.ClassChange.isStatGainMode()) {
-                let params = $dataClasses[this._classId].params;
-                //let levelsGained = this.Lazi_GetACTORMODELevel() - currentLVL;
-                for (let i = 0; i < params.length; ++i) {
-                    for (let j = (currentLVL + 1); j <= this.Lazi_GetACTORMODELevel(); ++j) {
-
-                        //Use current level
-                        if (Lazi.ClassChange.getParam("statGainType")) {
-                            let paramDiff = params[i][j] - params[i][j - 1];
-                            this.Lazi_IncreaseParams(paramDiff, i);
-                        }
-
-                        //Use level 1 stats
-                        else {
-                            this.Lazi_IncreaseParams(params[i][1], i);
-                        }
-                    }
-                }
+                this.Lazi_StatGainLevelUp(currentLVL);
             }
             this.Lazi_ACTORMODEDisplayLevelUp();
             this.refresh();
