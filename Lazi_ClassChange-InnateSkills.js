@@ -7,7 +7,7 @@
  * This plugin sdds the ability to learn classes 
  * based on levels in other classes
  * --------------
- * |Version: 1.0|
+ * |Version: 1.0.0|
  * --------------
  * 
  * ---------------

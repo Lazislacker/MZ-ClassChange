@@ -7,7 +7,7 @@
  * switch between them. There are currenty 3 modes: Shared EXP and
  * Individual Class EXP
  * --------------
- * |Version: 1.0|
+ * |Version: 1.1.0|
  * --------------
  * 
  * ---------------
