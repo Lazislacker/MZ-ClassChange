@@ -1,7 +1,7 @@
 /*:
  * @author Lazislacker
  * @target MZ
- * @plugindesc REQUIRES a Lazi_ClassChange plugin! Adds the ability to learn classes based on levels in other classes
+ * @plugindesc REQUIRES a Lazi_ClassChange plugin! Adds the ability to learn classes based on a variety of criteria
  * @help
  * REQUIRES a Lazi_ClassChange plugin!
  * This plugin sdds the ability to learn classes 
@@ -13,7 +13,26 @@
  * ---------------
  * |Documentation|
  * ---------------
+ * This plugin allows notetags to be placed on Actor's that will grant them skills when certain requirements are met.
+ * These skills can be used by the Actor regardless of what their current class is set too.
+ * The following notetags are used to add innate skills to an actor:
+ *  *<LaziInnateSkill:[skillID],[level]> -> This will add the skill to the actor when they reach the required level in
+ *   any class. This includes the Base class in Actor Mode.
+ *  *<LaziInnateSkillBASE:[skillID],[level]> -> This will add the skill to the actor when they reach the required level
+ *   in their base class. This tag is only active in Actor Mode and will do nothing in any other mode.
+ *  *<LaziInnateSkill:[skillID]ReqSkills:[skillID],...?> -> This will add the skill to the actor when they know all
+ *   skills in the ReqSkills list at the same time.
+ *  *<LaziInnateSkill:[skillID]ReqANDClass:|[classID],[classLevel]|...> -> This will add the skill to the actor
+ *   when they reach the required level for all the classes in the list.
+ *  *<LaziInnateSkill:[skillID]ReqORClass:|[classID],[classLevel]|...> -> This will add the skill to the actor
+ *   when they reach the required level for at least one of the classes in the list.
  * 
+ * Examples:
+ *  *<LaziInnateSkill:1,10>
+ *  *<LaziInnateSkillBASE:1,15>
+ *  *<LaziInnateSkill:1ReqSkills:3,4,5>
+ *  *<LaziInnateSkill:1ReqANDClass:|2,10||3,5||4,15|>
+ *  *<LaziInnateSkill:1ReqORClass:|2,15||3,10|>
  */
 
 //------------------------------//

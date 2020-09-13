@@ -13,7 +13,23 @@
  * ---------------
  * |Documentation|
  * ---------------
+ * This plugin allows notetags to be placed on an Actor that will allow the actor to learn classes
+ * when they reach a certain level in another class or a combination of other classes.
+ * THere are four notetags that are used for this in the various Class Change modes.
  * 
+ * >==Shared EXP Mode<==
+ * <LaziLearnableClass:[level]>
+ * 
+ * >==Individual EXP Mode<==
+ * (The ... represents a series being possible)
+ * <LaziLearnableClassAND:|[classId],[level]|...> -> All of the classes must be at the specified level
+ * <LaziLearnableClassOR:|[classId],[level]|...> -> At least one of the classes must be at the level
+ * 
+ * >==Actor Mode<==
+ * (The ... represents a series being possible)
+ * <LaziLearnableClassAND:|[classId],[level]|...> -> All of the classes must be at the specified level
+ * <LaziLearnableClassOR:|[classId],[level]|...> -> At least one of the classes must be at the level
+ * <LaziLearnableClassBase:[level]>
  */
 
 //------------------------------//
