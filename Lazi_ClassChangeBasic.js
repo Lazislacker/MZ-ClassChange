@@ -7,7 +7,7 @@
  * switch between them. There are currenty 3 modes: Shared EXP and
  * Individual Class EXP
  * --------------
- * |Version: 1.1.0|
+ * |Version: 1.1.1|
  * --------------
  * 
  * ---------------
@@ -208,7 +208,7 @@ if (!Imported.Lazi_ClassChange) {
     var Lazi = Lazi || {};
     Lazi.ClassChangeBasic = Lazi.ClassChangeBasic || {};
     Lazi.Utils = Lazi.Utils || {};
-    Lazi.ClassChangeBasic.version = "1.0.1";
+    Lazi.ClassChangeBasic.version = "1.1.1";
     Lazi.Utils.Debug = false;
 
     //------------------------------//
