@@ -311,18 +311,18 @@ if (!Imported.Lazi_ClassChange) {
             let actor = $gameActors_.data[args.actorId]
             if (actor._classId == args.classId) {
                 //Uh oh. We only have one class and it's this class, do nothing.
-                if (actor.laziClassChange_classes.length == 1 && actor.laziClassChange_classes[0].classID == actor._classId) {
+                if (actor.LaziClassChange_classes.length == 1 && actor.LaziClassChange_classes[0].classID == actor._classId) {
                     return;
                 }
                 if (actor.LaziClassChange_classes[0].classID != actor._classId) {
                     let newClass = actor.LaziClassChange_classes[0];
                     Lazi.ClassChangeBasic.performClassSwap(actor, newClass.classID, newClass.classExp);
-                } else if (actor.laziClassChange_classes.length == 1) {
+                } else if (actor.LaziClassChange_classes.length == 1) {
                     return
                 }
                 //Otherwise just use the second in the list. 
                 else {
-                    let newClass = actor.laziClassChange_classes[1];
+                    let newClass = actor.LaziClassChange_classes[1];
                     Lazi.ClassChangeBasic.performClassSwap(actor, newClass.classID, newClass.classExp);
                 }
             }
@@ -436,20 +436,33 @@ if (!Imported.Lazi_ClassChange) {
         const note = actor.note;
         let classList = [];
         classList.push(new Lazi_ClassChange_ClassObject(actor.classId, Lazi.ClassChangeBasic.ExpByClassLevel(actor.classId, actor.initialLevel)))
-        let matches = note.matchAll(/<\s*Lazi\s?Give\s?Class[:]?\s*(\d+)\s*>/ig)
+        let matches = note.matchAll(/<\s*Lazi\s?Give\s?Class:\s*(.+)\s*>/ig)
         if (matches) {
             for (match of matches) {
-                if (parseInt(match[1]) == actor._classId) //Don't add two copies of a class
-                    continue;
-                classList.push(new Lazi_ClassChange_ClassObject(parseInt(match[1]), 0));
+                let subMatches = match[0].matchAll(/(\d+),?/g)
+                for (subMatch of subMatches) {
+                    //We already have it, don't add it.
+                    let alreadyAdded = classList.filter((entry) => {return (entry.classID == parseInt(subMatch[1]))}).length != 0
+                    if ((parseInt(subMatch[1]) == actor._classId) || alreadyAdded) {
+                        continue;
+                    }
+
+                    classList.push(new Lazi_ClassChange_ClassObject(parseInt(subMatch[1]), 0));
+                }
             }
         }
-        let DisableMatches = note.matchAll(/<\s*Lazi\s?Give\s?Class\s?Disable[:]?\s*(\d+)\s*>/ig)
+        let DisableMatches = note.matchAll(/<\s*Lazi\s?Give\s?Class\s?Disable:\s*(.+)\s*>/ig)
         if (DisableMatches) {
             for (match of DisableMatches) {
-                if (parseInt(match[1]) == actor._classId) //Don't add two copies of a class
-                    continue;
-                classList.push(new Lazi_ClassChange_ClassObject(parseInt(match[1]), 0, false));
+                let subMatches = match[0].matchAll(/(\d+),?/g)
+                for (subMatch of subMatches) {
+                    //We already have it, don't add it.
+                    let alreadyAdded = classList.filter((entry) => {return (entry.classID == parseInt(subMatch[1]))}).length != 0
+                    if ((parseInt(subMatch[1]) == actor._classId) || alreadyAdded) {
+                        continue;
+                    }
+                    classList.push(new Lazi_ClassChange_ClassObject(parseInt(subMatch[1]), 0, false));
+                }
             }
         }
         return classList;
@@ -569,6 +582,7 @@ if (!Imported.Lazi_ClassChange) {
         this.createItemWindow();
         this.createActorWindow();
         this._itemWindow.activate();
+        this._itemWindow.selectLast();
     };
 
     Lazi_Scene_ClassChange.prototype.start = function () {
@@ -702,7 +716,7 @@ if (!Imported.Lazi_ClassChange) {
     };
 
     Window_ClassList.prototype.isCurrentItemEnabled = function () {
-        if (this.index() == -1){
+        if (this.index() == -1) {
             return;
         }
         return this.isEnabled(this._data[this.index()]);
@@ -718,19 +732,24 @@ if (!Imported.Lazi_ClassChange) {
 
     Window_ClassList.prototype.makeItemList = function () {
         if (this._actor) {
-            this._data = this._actor.LaziClassChange_classes;
+            let classesThatExist = this._actor.LaziClassChange_classes.filter((_class)=>{
+                if ($dataClasses[_class.classID])
+                    return true;
+                return false;
+            })
+            this._data = classesThatExist;
         } else {
             this._data = [];
         }
     };
 
     Window_ClassList.prototype.selectLast = function () {
-        this.forceSelect(0);
+        this.smoothSelect(0);
     };
 
     Window_ClassList.prototype.drawItem = function (index) {
         const _class = this.itemAt(index);
-        if (_class) {
+        if (_class && $dataClasses[_class.classID]) {
             const className = $dataClasses[_class.classID].name;
             const levelWidth = this.levelWidth();
             const rect = this.itemLineRect(index);
