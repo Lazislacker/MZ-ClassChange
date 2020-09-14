@@ -963,6 +963,9 @@ Window_ClassList.prototype.itemAt = function (index) {
 };
 
 Window_ClassList.prototype.isCurrentItemEnabled = function () {
+    if (this.index() == -1){
+        return;
+    }
     return this.isEnabled(this._data[this.index()]);
 };
 

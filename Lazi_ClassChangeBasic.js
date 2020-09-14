@@ -702,6 +702,9 @@ if (!Imported.Lazi_ClassChange) {
     };
 
     Window_ClassList.prototype.isCurrentItemEnabled = function () {
+        if (this.index() == -1){
+            return;
+        }
         return this.isEnabled(this._data[this.index()]);
     };
 
