@@ -747,6 +747,17 @@ if (!Imported.Lazi_ClassChange) {
         this.smoothSelect(0);
     };
 
+    Window_ClassList.prototype.drawItemName = function(item, x, y, width) {
+        if (item) {
+            const iconY = y + (this.lineHeight() - ImageManager.iconHeight) / 2;
+            const textMargin = ImageManager.iconWidth + 4;
+            const itemWidth = Math.max(0, width - textMargin);
+            this.resetTextColor();
+            this.drawIcon(item.iconIndex, x, iconY);
+            this.drawText(item.name, x + textMargin, y, itemWidth);
+        }
+    };
+
     Window_ClassList.prototype.drawItem = function (index) {
         const _class = this.itemAt(index);
         if (_class && $dataClasses[_class.classID]) {
