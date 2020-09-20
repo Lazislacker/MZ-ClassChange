@@ -7,7 +7,7 @@
  * switch between them. There are currenty 3 modes: Shared EXP, 
  * Individual Class EXP, and Actor Mode.
  * --------------
- * |Version: 1.1.2|
+ * |Version: 1.1.3|
  * --------------
  * 
  * ---------------
@@ -269,7 +269,7 @@ Imported.Lazi_ClassChange = true;
 var Lazi = Lazi || {};
 Lazi.ClassChange = Lazi.ClassChange || {};
 Lazi.Utils = Lazi.Utils || {};
-Lazi.ClassChange.version = "1.1.2";
+Lazi.ClassChange.version = "1.1.3";
 Lazi.Utils.Debug = false;
 
 //------------------------------//
